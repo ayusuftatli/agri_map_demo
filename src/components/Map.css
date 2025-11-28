@@ -1,0 +1,49 @@
+.map-wrapper {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+.map-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* Mapbox GL Controls Styling */
+.mapboxgl-ctrl-group {
+    background: var(--glass-bg) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border) !important;
+    box-shadow: var(--glass-shadow) !important;
+    border-radius: var(--radius-md) !important;
+}
+
+.mapboxgl-ctrl-group button {
+    background: transparent !important;
+    transition: all var(--transition-fast);
+}
+
+.mapboxgl-ctrl-group button:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.mapboxgl-ctrl-group button+button {
+    border-top: 1px solid var(--glass-border) !important;
+}
+
+.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl button.mapboxgl-ctrl-zoom-out .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl button.mapboxgl-ctrl-compass .mapboxgl-ctrl-icon,
+.mapboxgl-ctrl button.mapboxgl-ctrl-fullscreen .mapboxgl-ctrl-icon {
+    filter: brightness(0) invert(1);
+    opacity: 0.8;
+}
+
+.mapboxgl-ctrl button:hover .mapboxgl-ctrl-icon {
+    opacity: 1;
+}
