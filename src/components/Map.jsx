@@ -40,13 +40,34 @@ const Map = ({ showSoil, showParcels }) => {
                 'source-layer': 'combined_layer',
                 paint: {
                     'fill-color': [
-                        'interpolate',
-                        ['linear'],
-                        ['get', 'OBJECTID'],
-                        0, '#e0f3db',
-                        500, '#a8ddb5',
-                        1000, '#43a2ca',
-                        1500, '#0868ac'
+                        'match',
+                        ['get', 'land_capability_class'],
+                        // Class I - Best for crops (dark green)
+                        'I', '#2d7f3e',
+                        '1', '#2d7f3e',
+                        // Class II - Good for crops with moderate limitations (medium green)
+                        'II', '#4caf50',
+                        '2', '#4caf50',
+                        // Class III - Suitable for crops with severe limitations (light green)
+                        'III', '#8bc34a',
+                        '3', '#8bc34a',
+                        // Class IV - Marginal for crops (yellow-green)
+                        'IV', '#cddc39',
+                        '4', '#cddc39',
+                        // Class V - Not suitable for crops, pasture/range (light orange)
+                        'V', '#ffc107',
+                        '5', '#ffc107',
+                        // Class VI - Severe limitations, pasture/woodland (orange)
+                        'VI', '#ff9800',
+                        '6', '#ff9800',
+                        // Class VII - Very severe limitations (red-orange)
+                        'VII', '#ff5722',
+                        '7', '#ff5722',
+                        // Class VIII - Recreation/wildlife only (red)
+                        'VIII', '#f44336',
+                        '8', '#f44336',
+                        // Default color for undefined/null values
+                        '#999999'
                     ],
                     'fill-opacity': 0.6,
                     'fill-outline-color': 'rgba(255,255,255,0.1)'
