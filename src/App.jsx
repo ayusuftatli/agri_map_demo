@@ -8,17 +8,9 @@ function App() {
 
   return (
     <div className="app">
-      <header className="app-header glass fade-in">
-        <div className="header-content">
-          <h1 className="app-title">
-            <span className="gradient-text">Sampson County</span>
-            <span className="subtitle">North Carolina</span>
-          </h1>
-          <p className="app-description">Interactive Agricultural Data Visualization</p>
-        </div>
-      </header>
 
-      <div className="controls-panel glass fade-in">
+
+      <div className="controls-panel">
         <h2 className="controls-title">Map Layers</h2>
 
         <div className="layer-controls">

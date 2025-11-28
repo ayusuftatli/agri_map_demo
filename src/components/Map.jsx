@@ -43,13 +43,13 @@ const Map = ({ showSoil, showParcels }) => {
                         'interpolate',
                         ['linear'],
                         ['get', 'OBJECTID'],
-                        0, '#4facfe',
-                        500, '#00f2fe',
-                        1000, '#667eea',
-                        1500, '#764ba2'
+                        0, '#e0f3db',
+                        500, '#a8ddb5',
+                        1000, '#43a2ca',
+                        1500, '#0868ac'
                     ],
                     'fill-opacity': 0.6,
-                    'fill-outline-color': '#ffffff'
+                    'fill-outline-color': 'rgba(255,255,255,0.1)'
                 },
                 layout: {
                     visibility: showSoil ? 'visible' : 'none'
@@ -68,8 +68,8 @@ const Map = ({ showSoil, showParcels }) => {
                 source: 'sampson-parcels',
                 'source-layer': 'combined_layer',
                 paint: {
-                    'fill-color': '#f5576c',
-                    'fill-opacity': 0.3
+                    'fill-color': '#fdbb84',
+                    'fill-opacity': 0.1
                 },
                 layout: {
                     visibility: showParcels ? 'visible' : 'none'
@@ -82,9 +82,9 @@ const Map = ({ showSoil, showParcels }) => {
                 source: 'sampson-parcels',
                 'source-layer': 'combined_layer',
                 paint: {
-                    'line-color': '#f093fb',
-                    'line-width': 1.5,
-                    'line-opacity': 0.8
+                    'line-color': '#fc8d59',
+                    'line-width': 1,
+                    'line-opacity': 0.6
                 },
                 layout: {
                     visibility: showParcels ? 'visible' : 'none'

@@ -15,11 +15,9 @@
 
 /* Mapbox GL Controls Styling */
 .mapboxgl-ctrl-group {
-    background: var(--glass-bg) !important;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid var(--glass-border) !important;
-    box-shadow: var(--glass-shadow) !important;
+    background: var(--dark-surface) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
     border-radius: var(--radius-md) !important;
 }
 
@@ -29,11 +27,11 @@
 }
 
 .mapboxgl-ctrl-group button:hover {
-    background: rgba(255, 255, 255, 0.1) !important;
+    background: var(--dark-elevated) !important;
 }
 
 .mapboxgl-ctrl-group button+button {
-    border-top: 1px solid var(--glass-border) !important;
+    border-top: 1px solid var(--border-color) !important;
 }
 
 .mapboxgl-ctrl button.mapboxgl-ctrl-zoom-in .mapboxgl-ctrl-icon,
