@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import './Map.css';
@@ -13,6 +13,24 @@ const INITIAL_ZOOM = 10;
 const Map = ({ showSoil, showParcels }) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
+    const [searchParno, setSearchParno] = useState('');
+    const [highlightedParcel, setHighlightedParcel] = useState(null);
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchStatus, setSearchStatus] = useState('');
+    const [parcelIndex, setParcelIndex] = useState(null);
+
+    // Load parcel index on mount
+    useEffect(() => {
+        fetch('/parcel-index.json')
+            .then(res => res.json())
+            .then(data => {
+                setParcelIndex(data);
+                console.log(`Loaded parcel index with ${Object.keys(data).length} parcels`);
+            })
+            .catch(err => {
+                console.error('Failed to load parcel index:', err);
+            });
+    }, []);
 
     useEffect(() => {
         if (map.current) return; // Initialize map only once
@@ -73,7 +91,7 @@ const Map = ({ showSoil, showParcels }) => {
                     'fill-outline-color': 'rgba(255,255,255,0.1)'
                 },
                 layout: {
-                    visibility: showSoil ? 'visible' : 'none'
+                    visibility: 'none'
                 }
             });
 
@@ -93,7 +111,7 @@ const Map = ({ showSoil, showParcels }) => {
                     'fill-opacity': 0.1
                 },
                 layout: {
-                    visibility: showParcels ? 'visible' : 'none'
+                    visibility: 'none'
                 }
             });
 
@@ -108,7 +126,24 @@ const Map = ({ showSoil, showParcels }) => {
                     'line-opacity': 0.6
                 },
                 layout: {
-                    visibility: showParcels ? 'visible' : 'none'
+                    visibility: 'none'
+                }
+            });
+
+            // Add highlight layer for searched parcel
+            map.current.addLayer({
+                id: 'parcels-highlight',
+                type: 'line',
+                source: 'sampson-parcels',
+                'source-layer': 'combined_layer',
+                paint: {
+                    'line-color': '#00ff00',
+                    'line-width': 3,
+                    'line-opacity': 1
+                },
+                filter: ['==', 'PARNO', ''],
+                layout: {
+                    visibility: 'visible'
                 }
             });
 
@@ -202,8 +237,92 @@ const Map = ({ showSoil, showParcels }) => {
         }
     }, [showParcels]);
 
+    // Function to search and highlight parcel by PARNO (instant lookup)
+    const searchParcel = () => {
+        if (!map.current || !searchParno.trim()) return;
+
+        const parnoValue = searchParno.trim();
+        setIsSearching(true);
+        setSearchStatus('Searching...');
+
+        // Check if index is loaded
+        if (!parcelIndex) {
+            setSearchStatus('Index loading...');
+            setIsSearching(false);
+            return;
+        }
+
+        // Instant lookup in the index
+        const coordinates = parcelIndex[parnoValue];
+
+        if (coordinates) {
+            // Found in index - fly to the location
+            setHighlightedParcel(parnoValue);
+            map.current.setFilter('parcels-highlight', ['==', 'PARNO', parnoValue]);
+
+            // Ensure parcels layer is visible
+            if (map.current.getLayer('parcels-fill')) {
+                map.current.setLayoutProperty('parcels-fill', 'visibility', 'visible');
+                map.current.setLayoutProperty('parcels-outline', 'visibility', 'visible');
+            }
+
+            // Fly to the parcel centroid
+            map.current.flyTo({
+                center: coordinates,
+                zoom: 17,
+                duration: 1500
+            });
+
+            setSearchStatus('Found!');
+            setIsSearching(false);
+        } else {
+            setSearchStatus('Not found');
+            setIsSearching(false);
+            alert(`Parcel "${parnoValue}" was not found in Sampson County.`);
+        }
+    };
+
+    // Handle Enter key press
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !isSearching) {
+            searchParcel();
+        }
+    };
+
+    // Clear highlight
+    const clearHighlight = () => {
+        setIsSearching(false);
+        setSearchStatus('');
+        if (map.current && map.current.getLayer('parcels-highlight')) {
+            map.current.setFilter('parcels-highlight', ['==', 'PARNO', '']);
+        }
+        setHighlightedParcel(null);
+        setSearchParno('');
+    };
+
     return (
         <div className="map-wrapper">
+            <div className="search-control">
+                <input
+                    type="text"
+                    placeholder="Enter PARNO..."
+                    value={searchParno}
+                    onChange={(e) => setSearchParno(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="search-input"
+                />
+                <button onClick={searchParcel} className="search-button">
+                    Search
+                </button>
+                {highlightedParcel && (
+                    <button onClick={clearHighlight} className="clear-button">
+                        Clear
+                    </button>
+                )}
+                {searchStatus && (
+                    <span className="search-status">{searchStatus}</span>
+                )}
+            </div>
             <div ref={mapContainer} className="map-container" />
         </div>
     );
