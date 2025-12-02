@@ -10,7 +10,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiYXl1c3VmdGF0bGkiLCJhIjoiY2x2a3JzbHk4MGwzODJpb
 const SAMPSON_CENTER = [-78.3364, 34.9940];
 const INITIAL_ZOOM = 10;
 
-const Map = ({ showSoil, showParcels }) => {
+const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
     const [searchParno, setSearchParno] = useState('');
@@ -156,6 +156,23 @@ const Map = ({ showSoil, showParcels }) => {
                 map.current.getCanvas().style.cursor = '';
             });
 
+            // Add click handler for parcels
+            map.current.on('click', 'parcels-fill', (e) => {
+                if (e.features && e.features.length > 0) {
+                    const feature = e.features[0];
+                    const parno = feature.properties.PARNO;
+
+                    if (parno && onParcelSelect) {
+                        // Highlight the clicked parcel
+                        setHighlightedParcel(parno);
+                        map.current.setFilter('parcels-highlight', ['==', 'PARNO', parno]);
+
+                        // Call the callback with parcel_id (using PARNO as identifier)
+                        onParcelSelect(parno);
+                    }
+                }
+            });
+
             // Add hover effects for soil
             map.current.on('mouseenter', 'soil-layer', () => {
                 map.current.getCanvas().style.cursor = 'pointer';
@@ -236,6 +253,32 @@ const Map = ({ showSoil, showParcels }) => {
             }
         }
     }, [showParcels]);
+
+    // Update highlight when selectedParcelId changes (from external source like search)
+    useEffect(() => {
+        if (!map.current || !map.current.isStyleLoaded()) return;
+
+        if (selectedParcelId && parcelIndex) {
+            // Highlight the selected parcel using ref to avoid setState in effect
+            map.current.setFilter('parcels-highlight', ['==', 'PARNO', selectedParcelId]);
+
+            // Fly to the parcel if we have coordinates
+            const coordinates = parcelIndex[selectedParcelId];
+            if (coordinates) {
+                // Ensure parcels layer is visible
+                if (map.current.getLayer('parcels-fill')) {
+                    map.current.setLayoutProperty('parcels-fill', 'visibility', 'visible');
+                    map.current.setLayoutProperty('parcels-outline', 'visibility', 'visible');
+                }
+
+                map.current.flyTo({
+                    center: coordinates,
+                    zoom: 17,
+                    duration: 1500
+                });
+            }
+        }
+    }, [selectedParcelId, parcelIndex]);
 
     // Function to search and highlight parcel by PARNO (instant lookup)
     const searchParcel = () => {

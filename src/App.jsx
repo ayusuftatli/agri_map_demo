@@ -1,14 +1,31 @@
 import { useState } from 'react';
 import Map from './components/Map';
+import SearchBar from './components/SearchBar';
+import ParcelDetail from './components/ParcelDetail';
 import './App.css';
 
 function App() {
   const [showSoil, setShowSoil] = useState(true);
   const [showParcels, setShowParcels] = useState(true);
+  const [selectedParcelId, setSelectedParcelId] = useState(null);
+  const [showDetailPanel, setShowDetailPanel] = useState(false);
+
+  const handleParcelSelect = (parcelId) => {
+    setSelectedParcelId(parcelId);
+    setShowDetailPanel(true);
+  };
+
+  const handleCloseDetail = () => {
+    setShowDetailPanel(false);
+    setSelectedParcelId(null);
+  };
 
   return (
     <div className="app">
-
+      {/* Search Bar */}
+      <div className="search-container">
+        <SearchBar onParcelSelect={handleParcelSelect} />
+      </div>
 
       <div className="controls-panel">
         <h2 className="controls-title">Map Layers</h2>
@@ -52,7 +69,20 @@ function App() {
         </div>
       </div>
 
-      <Map showSoil={showSoil} showParcels={showParcels} />
+      <Map
+        showSoil={showSoil}
+        showParcels={showParcels}
+        onParcelSelect={handleParcelSelect}
+        selectedParcelId={selectedParcelId}
+      />
+
+      {/* Parcel Detail Panel */}
+      {showDetailPanel && (
+        <ParcelDetail
+          parcelId={selectedParcelId}
+          onClose={handleCloseDetail}
+        />
+      )}
     </div>
   );
 }
