@@ -207,7 +207,7 @@ export async function getAssessments(req, res) {
         }
 
         const query = `
-      SELECT assessment_id, tax_year, land_value, building_value, total_value, created_at
+      SELECT assessment_id, tax_year, land_value, building_value, total_value
       FROM assessments
       WHERE parcel_id = $1
       ORDER BY tax_year DESC
@@ -249,7 +249,7 @@ export async function getOwners(req, res) {
         }
 
         const query = `
-      SELECT owner_id, owner_name, is_primary, mailing_address, created_at
+      SELECT owner_id, owner_name, is_primary, mailing_address
       FROM parcel_owners
       WHERE parcel_id = $1
       ORDER BY is_primary DESC, owner_name

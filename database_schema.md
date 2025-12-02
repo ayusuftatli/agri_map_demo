@@ -11,7 +11,7 @@ Stores the core parcel record. All other tables link back to this.
 | ---------------- | ------------ | ----------------------------- |
 | parcel_id        | VARCHAR(50)  | Unique ID for the parcel      |
 | pin              | VARCHAR(50)  | Parcel Identification Number  |
-| alt_parcel_num   | VARCHAR(50)  | Alternate parcel number       |
+| alt_parcel_num   | VARCHAR(50)  |i Alternate parcel number       |
 | parno            | VARCHAR(100) | Original parcel number format |
 | nparno           | VARCHAR(100) | Normalized parcel number      |
 | gis_id           | VARCHAR(50)  | GIS identifier                |

@@ -17,19 +17,19 @@ function ParcelDetail({ parcelId, onClose }) {
             setError(null);
 
             try {
-                const [parcelData, assessmentData, ownerData] = await Promise.all([
+                const [parcelResponse, assessmentResponse, ownerResponse] = await Promise.all([
                     getParcelDetails(parcelId),
                     getParcelAssessments(parcelId),
                     getParcelOwners(parcelId)
                 ]);
 
-                if (parcelData.error) {
-                    throw new Error(parcelData.error);
+                if (!parcelResponse.success) {
+                    throw new Error(parcelResponse.error || 'Failed to load parcel');
                 }
 
-                setParcel(parcelData);
-                setAssessments(assessmentData.assessments || []);
-                setOwners(ownerData.owners || []);
+                setParcel(parcelResponse.data);
+                setAssessments(assessmentResponse.data || []);
+                setOwners(ownerResponse.data || []);
             } catch (err) {
                 setError(err.message || 'Failed to load parcel data');
             } finally {
@@ -91,7 +91,7 @@ function ParcelDetail({ parcelId, onClose }) {
                                 </div>
                                 <div className="detail-item">
                                     <label>Address</label>
-                                    <span>{parcel.situs_address || 'N/A'}</span>
+                                    <span>{parcel.physical_address || 'N/A'}</span>
                                 </div>
                                 <div className="detail-item">
                                     <label>Township</label>
@@ -99,7 +99,7 @@ function ParcelDetail({ parcelId, onClose }) {
                                 </div>
                                 <div className="detail-item">
                                     <label>Zoning</label>
-                                    <span>{parcel.zoning || 'N/A'}</span>
+                                    <span>{parcel.zoning_code || 'N/A'}</span>
                                 </div>
                             </div>
                         </section>
@@ -110,19 +110,19 @@ function ParcelDetail({ parcelId, onClose }) {
                             <div className="detail-grid">
                                 <div className="detail-item">
                                     <label>Acres</label>
-                                    <span>{formatAcres(parcel.acres)}</span>
+                                    <span>{formatAcres(parcel.attributes?.gis_acres || parcel.attributes?.calc_acres)}</span>
                                 </div>
                                 <div className="detail-item">
                                     <label>Classification</label>
-                                    <span>{parcel.class_code || 'N/A'}</span>
+                                    <span>{parcel.attributes?.classification || 'N/A'}</span>
                                 </div>
                                 <div className="detail-item">
                                     <label>Road Type</label>
-                                    <span>{parcel.road_type || 'N/A'}</span>
+                                    <span>{parcel.attributes?.road_type || 'N/A'}</span>
                                 </div>
                                 <div className="detail-item">
                                     <label>Utilities</label>
-                                    <span>{parcel.utilities || 'N/A'}</span>
+                                    <span>{parcel.attributes?.utilities || 'N/A'}</span>
                                 </div>
                             </div>
                         </section>
