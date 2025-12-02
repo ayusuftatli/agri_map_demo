@@ -8,10 +8,6 @@ export async function searchParcels(req, res) {
     try {
         const { q, type = 'all' } = req.query;
 
-        // DEBUG: Log incoming request
-        console.log('=== SEARCH DEBUG ===');
-        console.log('Query params:', { q, type });
-
         if (!q || q.trim().length < 2) {
             return res.status(400).json({
                 success: false,
@@ -20,7 +16,6 @@ export async function searchParcels(req, res) {
         }
 
         const searchTerm = `%${q.trim()}%`;
-        console.log('Search term:', searchTerm);
 
         let query;
         let params;
@@ -75,37 +70,17 @@ export async function searchParcels(req, res) {
                 params = [searchTerm];
         }
 
-        // DEBUG: Log the query being executed
-        console.log('Executing query:', query);
-        console.log('With params:', params);
-
         const result = await pool.query(query, params);
-
-        // DEBUG: Log result count
-        console.log('Query returned', result.rows.length, 'rows');
 
         return res.json({
             success: true,
             data: result.rows,
         });
     } catch (error) {
-        // DEBUG: Log full error details
-        console.error('=== SEARCH ERROR ===');
-        console.error('Error name:', error.name);
-        console.error('Error message:', error.message);
-        console.error('Error code:', error.code);
-        console.error('Error detail:', error.detail);
-        console.error('Full error:', error);
-
+        console.error('Search parcels error:', error);
         return res.status(500).json({
             success: false,
             error: 'Failed to search parcels',
-            // Include error details in development mode
-            debug: process.env.NODE_ENV === 'development' ? {
-                message: error.message,
-                code: error.code,
-                detail: error.detail
-            } : undefined
         });
     }
 }

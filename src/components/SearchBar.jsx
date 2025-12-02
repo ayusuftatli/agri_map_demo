@@ -10,6 +10,7 @@ function SearchBar({ onParcelSelect }) {
     const [showResults, setShowResults] = useState(false);
     const searchRef = useRef(null);
     const debounceRef = useRef(null);
+    const isSelectingRef = useRef(false); // Flag to prevent search after selection
 
     // Handle click outside to close results
     useEffect(() => {
@@ -27,6 +28,12 @@ function SearchBar({ onParcelSelect }) {
     useEffect(() => {
         if (debounceRef.current) {
             clearTimeout(debounceRef.current);
+        }
+
+        // Skip search if we just selected a result
+        if (isSelectingRef.current) {
+            isSelectingRef.current = false;
+            return;
         }
 
         if (query.length < 2) {
@@ -57,8 +64,17 @@ function SearchBar({ onParcelSelect }) {
     }, [query, searchType]);
 
     const handleResultClick = (result) => {
+        // Set flag to prevent debounced search from triggering
+        isSelectingRef.current = true;
+
+        // Clear any pending debounced search
+        if (debounceRef.current) {
+            clearTimeout(debounceRef.current);
+        }
+
         onParcelSelect(result.parcel_id);
         setQuery(result.parno || '');
+        setResults([]); // Clear results to prevent "No parcels found" from showing
         setShowResults(false);
     };
 
@@ -77,7 +93,7 @@ function SearchBar({ onParcelSelect }) {
     const getResultLabel = (result) => {
         switch (searchType) {
             case 'address':
-                return result.situs_address || result.parno;
+                return result.physical_address || result.parno;
             case 'owner':
                 return `${result.owner_name || 'Unknown'} - ${result.parno}`;
             default:
@@ -90,9 +106,9 @@ function SearchBar({ onParcelSelect }) {
             case 'address':
                 return result.parno;
             case 'owner':
-                return result.situs_address || '';
+                return result.physical_address || '';
             default:
-                return result.situs_address || result.township || '';
+                return result.physical_address || result.township || '';
         }
     };
 
@@ -124,9 +140,9 @@ function SearchBar({ onParcelSelect }) {
 
             {showResults && results.length > 0 && (
                 <div className="search-results">
-                    {results.map((result) => (
+                    {results.map((result, index) => (
                         <div
-                            key={result.parcel_id}
+                            key={`${result.parcel_id}-${index}`}
                             className="search-result-item"
                             onClick={() => handleResultClick(result)}
                         >
