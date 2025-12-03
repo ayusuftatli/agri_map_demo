@@ -4,7 +4,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import './Map.css';
 
 // Mapbox access token
-mapboxgl.accessToken = 'pk.eyJ1IjoiYXl1c3VmdGF0bGkiLCJhIjoiY2x2a3JzbHk4MGwzODJpbXd5aGlhZjV2eCJ9.ClFH8_RYI0OWDAIIj91aCw';
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_PUBLIC_KEY
 
 // Sampson County, NC coordinates
 const SAMPSON_CENTER = [-78.3364, 34.9940];
@@ -14,6 +14,13 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
     const [parcelIndex, setParcelIndex] = useState(null);
+    // Use ref to store the latest onParcelSelect callback to avoid stale closures
+    const onParcelSelectRef = useRef(onParcelSelect);
+
+    // Update ref whenever onParcelSelect changes
+    useEffect(() => {
+        onParcelSelectRef.current = onParcelSelect;
+    }, [onParcelSelect]);
 
     // Load parcel index on mount
     useEffect(() => {
@@ -154,16 +161,18 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
 
             // Add click handler for parcels
             map.current.on('click', 'parcels-fill', (e) => {
+                console.log('[Map] Parcel clicked, onParcelSelect available:', !!onParcelSelectRef.current);
                 if (e.features && e.features.length > 0) {
                     const feature = e.features[0];
                     const parno = feature.properties.PARNO;
 
-                    if (parno && onParcelSelect) {
+                    if (parno && onParcelSelectRef.current) {
+                        console.log('[Map] Calling onParcelSelect with parno:', parno);
                         // Highlight the clicked parcel
                         map.current.setFilter('parcels-highlight', ['==', 'PARNO', parno]);
 
                         // Call the callback with parcel_id (using PARNO as identifier)
-                        onParcelSelect(parno);
+                        onParcelSelectRef.current(parno);
                     }
                 }
             });
