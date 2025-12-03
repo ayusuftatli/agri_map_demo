@@ -18,6 +18,238 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
     const onParcelSelectRef = useRef(onParcelSelect);
     const onSoilDataSelectRef = useRef(onSoilDataSelect);
 
+    // Helper function to calculate bounding box from geometry coordinates
+    const getBoundingBox = (geometry) => {
+        let minLng = Infinity, minLat = Infinity, maxLng = -Infinity, maxLat = -Infinity;
+
+        const processCoords = (coords) => {
+            if (typeof coords[0] === 'number') {
+                // This is a coordinate pair [lng, lat]
+                minLng = Math.min(minLng, coords[0]);
+                maxLng = Math.max(maxLng, coords[0]);
+                minLat = Math.min(minLat, coords[1]);
+                maxLat = Math.max(maxLat, coords[1]);
+            } else {
+                // This is an array of coordinates or rings
+                coords.forEach(processCoords);
+            }
+        };
+
+        processCoords(geometry.coordinates);
+        return [[minLng, minLat], [maxLng, maxLat]];
+    };
+
+    // Helper function to generate sample points within a polygon
+    const generateSamplePoints = (geometry) => {
+        const points = [];
+        const bbox = getBoundingBox(geometry);
+        const [minLng, minLat] = bbox[0];
+        const [maxLng, maxLat] = bbox[1];
+
+        // Generate a grid of points within the bounding box
+        const gridSize = 5; // 5x5 grid = 25 sample points
+        const lngStep = (maxLng - minLng) / (gridSize + 1);
+        const latStep = (maxLat - minLat) / (gridSize + 1);
+
+        for (let i = 1; i <= gridSize; i++) {
+            for (let j = 1; j <= gridSize; j++) {
+                const lng = minLng + (lngStep * i);
+                const lat = minLat + (latStep * j);
+                points.push([lng, lat]);
+            }
+        }
+
+        return points;
+    };
+
+    // Simple point-in-polygon test using ray casting
+    const pointInPolygon = (point, polygon) => {
+        const [x, y] = point;
+        let inside = false;
+
+        // Handle both Polygon and MultiPolygon
+        const rings = polygon.type === 'MultiPolygon'
+            ? polygon.coordinates.flat()
+            : polygon.coordinates;
+
+        for (const ring of rings) {
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const [xi, yi] = ring[i];
+                const [xj, yj] = ring[j];
+
+                if (((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi)) {
+                    inside = !inside;
+                }
+            }
+        }
+
+        return inside;
+    };
+
+    // Helper function to visualize debug points on the map
+    const visualizeDebugPoints = (allPoints, insidePoints, bbox) => {
+        if (!map.current) return;
+
+        // Create GeoJSON for all sample points (red)
+        const allPointsGeoJSON = {
+            type: 'FeatureCollection',
+            features: allPoints.map(point => ({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: point },
+                properties: { inside: false }
+            }))
+        };
+
+        // Create GeoJSON for points inside parcel (green)
+        const insidePointsGeoJSON = {
+            type: 'FeatureCollection',
+            features: insidePoints.map(point => ({
+                type: 'Feature',
+                geometry: { type: 'Point', coordinates: point },
+                properties: { inside: true }
+            }))
+        };
+
+        // Create bounding box rectangle
+        const bboxGeoJSON = {
+            type: 'FeatureCollection',
+            features: [{
+                type: 'Feature',
+                geometry: {
+                    type: 'Polygon',
+                    coordinates: [[
+                        [bbox[0][0], bbox[0][1]],
+                        [bbox[1][0], bbox[0][1]],
+                        [bbox[1][0], bbox[1][1]],
+                        [bbox[0][0], bbox[1][1]],
+                        [bbox[0][0], bbox[0][1]]
+                    ]]
+                },
+                properties: {}
+            }]
+        };
+
+        // Remove existing debug layers if they exist
+        if (map.current.getLayer('debug-bbox')) map.current.removeLayer('debug-bbox');
+        if (map.current.getLayer('debug-points-all')) map.current.removeLayer('debug-points-all');
+        if (map.current.getLayer('debug-points-inside')) map.current.removeLayer('debug-points-inside');
+        if (map.current.getSource('debug-bbox')) map.current.removeSource('debug-bbox');
+        if (map.current.getSource('debug-points-all')) map.current.removeSource('debug-points-all');
+        if (map.current.getSource('debug-points-inside')) map.current.removeSource('debug-points-inside');
+
+        // Add bounding box
+        map.current.addSource('debug-bbox', { type: 'geojson', data: bboxGeoJSON });
+        map.current.addLayer({
+            id: 'debug-bbox',
+            type: 'line',
+            source: 'debug-bbox',
+            paint: {
+                'line-color': '#ffff00',
+                'line-width': 2,
+                'line-dasharray': [2, 2]
+            }
+        });
+
+        // Add all sample points (red)
+        map.current.addSource('debug-points-all', { type: 'geojson', data: allPointsGeoJSON });
+        map.current.addLayer({
+            id: 'debug-points-all',
+            type: 'circle',
+            source: 'debug-points-all',
+            paint: {
+                'circle-radius': 4,
+                'circle-color': '#ff0000',
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#ffffff'
+            }
+        });
+
+        // Add inside points (green) - these will overlay the red ones
+        map.current.addSource('debug-points-inside', { type: 'geojson', data: insidePointsGeoJSON });
+        map.current.addLayer({
+            id: 'debug-points-inside',
+            type: 'circle',
+            source: 'debug-points-inside',
+            paint: {
+                'circle-radius': 5,
+                'circle-color': '#00ff00',
+                'circle-stroke-width': 1,
+                'circle-stroke-color': '#ffffff'
+            }
+        });
+
+        console.log('[Map] Debug visualization added - Yellow: bbox, Red: all points, Green: inside points');
+    };
+
+    // Helper function to query all soil features within a parcel and deduplicate
+    const querySoilFeaturesForParcel = (parcelFeature, clickPoint) => {
+        if (!map.current || !onSoilDataSelectRef.current) {
+            console.log('[Map] querySoilFeaturesForParcel: map or callback not available');
+            return;
+        }
+
+        console.log('[Map] querySoilFeaturesForParcel called');
+
+        const geometry = parcelFeature.geometry;
+        const uniqueSoilTypes = {};
+
+        // First, always add the soil at the click point
+        const clickSoilFeatures = map.current.queryRenderedFeatures(clickPoint, {
+            layers: ['soil-layer']
+        });
+
+        clickSoilFeatures.forEach(feature => {
+            const props = feature.properties;
+            // Group by Land Capability Class only
+            const landCapClass = props.land_capability_class || 'Unknown';
+            if (!uniqueSoilTypes[landCapClass]) {
+                uniqueSoilTypes[landCapClass] = props;
+            }
+        });
+
+        // If we have geometry, sample multiple points within the parcel
+        if (geometry && geometry.coordinates) {
+            const bbox = getBoundingBox(geometry);
+            const samplePoints = generateSamplePoints(geometry);
+            console.log(`[Map] Generated ${samplePoints.length} sample points`);
+
+            // Filter points to only those inside the parcel polygon
+            const pointsInsideParcel = samplePoints.filter(point => pointInPolygon(point, geometry));
+            console.log(`[Map] ${pointsInsideParcel.length} points are inside the parcel`);
+
+            // Visualize debug points
+            visualizeDebugPoints(samplePoints, pointsInsideParcel, bbox);
+
+            // Query soil at each point inside the parcel
+            pointsInsideParcel.forEach((point, idx) => {
+                const screenPoint = map.current.project(point);
+                const soilFeatures = map.current.queryRenderedFeatures(screenPoint, {
+                    layers: ['soil-layer']
+                });
+
+                // Only take the first (topmost) feature at each point
+                if (soilFeatures.length > 0) {
+                    const props = soilFeatures[0].properties;
+                    // Group by Land Capability Class only
+                    const landCapClass = props.land_capability_class || 'Unknown';
+
+                    if (!uniqueSoilTypes[landCapClass]) {
+                        uniqueSoilTypes[landCapClass] = props;
+                        console.log(`[Map] Point ${idx}: Found new class ${landCapClass}`);
+                    }
+                }
+            });
+        }
+
+        const uniqueSoilArray = Object.values(uniqueSoilTypes);
+        console.log(`[Map] Unique soil types found: ${uniqueSoilArray.length}`, uniqueSoilArray);
+
+        // Pass array of soil data to callback
+        if (uniqueSoilArray.length > 0) {
+            onSoilDataSelectRef.current(uniqueSoilArray);
+        }
+    };
+
     // Update ref whenever onParcelSelect changes
     useEffect(() => {
         onParcelSelectRef.current = onParcelSelect;
@@ -182,15 +414,8 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
                         // Call the callback with parcel_id (using PARNO as identifier)
                         onParcelSelectRef.current(parno);
 
-                        // Query soil data at the clicked point
-                        const soilFeatures = map.current.queryRenderedFeatures(e.point, {
-                            layers: ['soil-layer']
-                        });
-
-                        if (soilFeatures.length > 0 && onSoilDataSelectRef.current) {
-                            const soilProps = soilFeatures[0].properties;
-                            onSoilDataSelectRef.current(soilProps);
-                        }
+                        // Query all soil features within the parcel's bounding box
+                        querySoilFeaturesForParcel(feature, e.point);
                     }
                 }
             });
@@ -431,15 +656,8 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
                             map.current.setFilter('parcels-highlight', ['==', 'PARNO', parno]);
                             onParcelSelectRef.current(parno);
 
-                            // Query soil data at the clicked point
-                            const soilFeatures = map.current.queryRenderedFeatures(e.point, {
-                                layers: ['soil-layer']
-                            });
-
-                            if (soilFeatures.length > 0 && onSoilDataSelectRef.current) {
-                                const soilProps = soilFeatures[0].properties;
-                                onSoilDataSelectRef.current(soilProps);
-                            }
+                            // Query all soil features within the parcel's bounding box
+                            querySoilFeaturesForParcel(feature, e.point);
                         }
                     }
                 });

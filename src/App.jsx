@@ -17,8 +17,9 @@ function App() {
     setShowDetailPanel(true);
   };
 
-  const handleSoilDataSelect = (soilProps) => {
-    setSoilData(soilProps);
+  const handleSoilDataSelect = (soilDataArray) => {
+    // Now receives an array of soil types instead of a single object
+    setSoilData(soilDataArray);
   };
 
   const handleCloseDetail = () => {

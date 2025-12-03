@@ -9,6 +9,13 @@ function ParcelDetail({ parcelId, soilData, onClose }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
+    // Debug: log soilData when it changes
+    useEffect(() => {
+        console.log('[ParcelDetail] soilData received:', soilData);
+        console.log('[ParcelDetail] soilData is array:', Array.isArray(soilData));
+        console.log('[ParcelDetail] soilData length:', soilData?.length);
+    }, [soilData]);
+
     useEffect(() => {
         if (!parcelId) return;
 
@@ -177,27 +184,32 @@ function ParcelDetail({ parcelId, soilData, onClose }) {
                         )}
 
                         {/* Soil Information Section */}
-                        {soilData && (
+                        {soilData && Array.isArray(soilData) && soilData.length > 0 && (
                             <section className="detail-section">
-                                <h3>Soil Information</h3>
-                                <div className="detail-grid">
-                                    <div className="detail-item">
-                                        <label>Farmland</label>
-                                        <span>{soilData.Farmland || 'N/A'}</span>
+                                <h3>Soil Information ({soilData.length} {soilData.length === 1 ? 'class' : 'classes'} found)</h3>
+                                {soilData.map((soil, index) => (
+                                    <div key={index} className="soil-type-card">
+                                        <h4 className="soil-type-header">Class {soil.land_capability_class || 'Unknown'}</h4>
+                                        <div className="detail-grid">
+                                            <div className="detail-item">
+                                                <label>Farmland</label>
+                                                <span>{soil.Farmland || 'N/A'}</span>
+                                            </div>
+                                            <div className="detail-item">
+                                                <label>Land Capability Class</label>
+                                                <span>{soil.land_capability_class || 'N/A'}</span>
+                                            </div>
+                                            <div className="detail-item">
+                                                <label>Slope</label>
+                                                <span>{soil.Slope || 'N/A'}</span>
+                                            </div>
+                                            <div className="detail-item">
+                                                <label>Soil Type</label>
+                                                <span>{soil['Soil Type'] || 'N/A'}</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="detail-item">
-                                        <label>Land Capability Class</label>
-                                        <span>{soilData.land_capability_class || 'N/A'}</span>
-                                    </div>
-                                    <div className="detail-item">
-                                        <label>Slope</label>
-                                        <span>{soilData.Slope || 'N/A'}</span>
-                                    </div>
-                                    <div className="detail-item">
-                                        <label>Soil Type</label>
-                                        <span>{soilData['Soil Type'] || 'N/A'}</span>
-                                    </div>
-                                </div>
+                                ))}
                             </section>
                         )}
                     </>

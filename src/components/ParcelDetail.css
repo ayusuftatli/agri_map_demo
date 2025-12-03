@@ -185,6 +185,38 @@
     margin-bottom: 0;
 }
 
+/* Soil Type Card */
+.soil-type-card {
+    background: #f0f7f1;
+    padding: 12px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+    border-left: 3px solid #2c5530;
+}
+
+.soil-type-card:last-child {
+    margin-bottom: 0;
+}
+
+.soil-type-header {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #2c5530;
+}
+
+.soil-type-card .detail-grid {
+    gap: 8px;
+}
+
+.soil-type-card .detail-item label {
+    font-size: 10px;
+}
+
+.soil-type-card .detail-item span {
+    font-size: 13px;
+}
+
 /* Responsive */
 @media (max-width: 480px) {
     .parcel-detail-panel {
