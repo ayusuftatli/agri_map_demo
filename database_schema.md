@@ -22,7 +22,6 @@ Stores the core parcel record. All other tables link back to this.
 | plat_slide       | VARCHAR(50)  | Plat slide reference          |
 | zoning_code      | VARCHAR(50)  | Zoning classification code    |
 | rec_area_num     | VARCHAR(50)  | Recreation/area code          |
-| scraped_at       | TIMESTAMP    | When this record was scraped  |
 
 ---
 

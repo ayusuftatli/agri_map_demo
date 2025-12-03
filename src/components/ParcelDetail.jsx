@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getParcelDetails, getParcelAssessments, getParcelOwners } from '../services/api';
 import './ParcelDetail.css';
 
-function ParcelDetail({ parcelId, onClose }) {
+function ParcelDetail({ parcelId, soilData, onClose }) {
     const [parcel, setParcel] = useState(null);
     const [assessments, setAssessments] = useState([]);
     const [owners, setOwners] = useState([]);
@@ -173,6 +173,31 @@ function ParcelDetail({ parcelId, onClose }) {
                                         </div>
                                     </div>
                                 ))}
+                            </section>
+                        )}
+
+                        {/* Soil Information Section */}
+                        {soilData && (
+                            <section className="detail-section">
+                                <h3>Soil Information</h3>
+                                <div className="detail-grid">
+                                    <div className="detail-item">
+                                        <label>Farmland</label>
+                                        <span>{soilData.Farmland || 'N/A'}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Land Capability Class</label>
+                                        <span>{soilData.land_capability_class || 'N/A'}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Slope</label>
+                                        <span>{soilData.Slope || 'N/A'}</span>
+                                    </div>
+                                    <div className="detail-item">
+                                        <label>Soil Type</label>
+                                        <span>{soilData['Soil Type'] || 'N/A'}</span>
+                                    </div>
+                                </div>
                             </section>
                         )}
                     </>

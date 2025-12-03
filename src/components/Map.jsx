@@ -10,17 +10,23 @@ mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_PUBLIC_KEY
 const SAMPSON_CENTER = [-78.3364, 34.9940];
 const INITIAL_ZOOM = 10;
 
-const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
+const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle, onSoilDataSelect }) => {
     const mapContainer = useRef(null);
     const map = useRef(null);
     const [parcelIndex, setParcelIndex] = useState(null);
     // Use ref to store the latest onParcelSelect callback to avoid stale closures
     const onParcelSelectRef = useRef(onParcelSelect);
+    const onSoilDataSelectRef = useRef(onSoilDataSelect);
 
     // Update ref whenever onParcelSelect changes
     useEffect(() => {
         onParcelSelectRef.current = onParcelSelect;
     }, [onParcelSelect]);
+
+    // Update ref whenever onSoilDataSelect changes
+    useEffect(() => {
+        onSoilDataSelectRef.current = onSoilDataSelect;
+    }, [onSoilDataSelect]);
 
     // Load parcel index on mount
     useEffect(() => {
@@ -40,7 +46,9 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
 
         map.current = new mapboxgl.Map({
             container: mapContainer.current,
-            style: 'mapbox://styles/mapbox/dark-v11',
+            style: mapStyle === 'satellite'
+                ? 'mapbox://styles/mapbox/satellite-streets-v12'
+                : 'mapbox://styles/mapbox/dark-v11',
             center: SAMPSON_CENTER,
             zoom: INITIAL_ZOOM,
             pitch: 0,
@@ -124,9 +132,9 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
                 source: 'sampson-parcels',
                 'source-layer': 'combined_layer',
                 paint: {
-                    'line-color': '#fc8d59',
-                    'line-width': 1,
-                    'line-opacity': 0.6
+                    'line-color': '#ff00ff',
+                    'line-width': 1.5,
+                    'line-opacity': 0.7
                 },
                 layout: {
                     visibility: 'none'
@@ -140,7 +148,7 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
                 source: 'sampson-parcels',
                 'source-layer': 'combined_layer',
                 paint: {
-                    'line-color': '#00ff00',
+                    'line-color': '#ff1493',
                     'line-width': 3,
                     'line-opacity': 1
                 },
@@ -173,6 +181,16 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
 
                         // Call the callback with parcel_id (using PARNO as identifier)
                         onParcelSelectRef.current(parno);
+
+                        // Query soil data at the clicked point
+                        const soilFeatures = map.current.queryRenderedFeatures(e.point, {
+                            layers: ['soil-layer']
+                        });
+
+                        if (soilFeatures.length > 0 && onSoilDataSelectRef.current) {
+                            const soilProps = soilFeatures[0].properties;
+                            onSoilDataSelectRef.current(soilProps);
+                        }
                     }
                 }
             });
@@ -283,6 +301,159 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId }) => {
             }
         }
     }, [selectedParcelId, parcelIndex]);
+
+    // Handle map style changes
+    useEffect(() => {
+        if (!map.current || !map.current.isStyleLoaded()) return;
+
+        const newStyleUrl = mapStyle === 'satellite'
+            ? 'mapbox://styles/mapbox/satellite-streets-v12'
+            : 'mapbox://styles/mapbox/dark-v11';
+
+        const currentStyle = map.current.getStyle();
+        if (currentStyle.sprite !== newStyleUrl) {
+            // Store current layers state before style change
+            const soilVisible = map.current.getLayoutProperty('soil-layer', 'visibility') === 'visible';
+            const parcelsVisible = map.current.getLayoutProperty('parcels-fill', 'visibility') === 'visible';
+            const currentFilter = map.current.getFilter('parcels-highlight');
+
+            map.current.setStyle(newStyleUrl);
+
+            // Re-add layers after style loads
+            map.current.once('style.load', () => {
+                // Add Soil Layer
+                map.current.addSource('sampson-soil', {
+                    type: 'vector',
+                    url: 'mapbox://ayusuftatli.sampson_soil'
+                });
+
+                map.current.addLayer({
+                    id: 'soil-layer',
+                    type: 'fill',
+                    source: 'sampson-soil',
+                    'source-layer': 'combined_layer',
+                    paint: {
+                        'fill-color': [
+                            'match',
+                            ['get', 'land_capability_class'],
+                            'I', '#2d7f3e',
+                            '1', '#2d7f3e',
+                            'II', '#4caf50',
+                            '2', '#4caf50',
+                            'III', '#8bc34a',
+                            '3', '#8bc34a',
+                            'IV', '#cddc39',
+                            '4', '#cddc39',
+                            'V', '#ffc107',
+                            '5', '#ffc107',
+                            'VI', '#ff9800',
+                            '6', '#ff9800',
+                            'VII', '#ff5722',
+                            '7', '#ff5722',
+                            'VIII', '#f44336',
+                            '8', '#f44336',
+                            '#999999'
+                        ],
+                        'fill-opacity': 0.6,
+                        'fill-outline-color': 'rgba(255,255,255,0.1)'
+                    },
+                    layout: {
+                        visibility: soilVisible ? 'visible' : 'none'
+                    }
+                });
+
+                // Add Parcels Layer
+                map.current.addSource('sampson-parcels', {
+                    type: 'vector',
+                    url: 'mapbox://ayusuftatli.sampson_parcels'
+                });
+
+                map.current.addLayer({
+                    id: 'parcels-fill',
+                    type: 'fill',
+                    source: 'sampson-parcels',
+                    'source-layer': 'combined_layer',
+                    paint: {
+                        'fill-color': '#fdbb84',
+                        'fill-opacity': 0.1
+                    },
+                    layout: {
+                        visibility: parcelsVisible ? 'visible' : 'none'
+                    }
+                });
+
+                map.current.addLayer({
+                    id: 'parcels-outline',
+                    type: 'line',
+                    source: 'sampson-parcels',
+                    'source-layer': 'combined_layer',
+                    paint: {
+                        'line-color': '#ff00ff',
+                        'line-width': 1.5,
+                        'line-opacity': 0.7
+                    },
+                    layout: {
+                        visibility: parcelsVisible ? 'visible' : 'none'
+                    }
+                });
+
+                map.current.addLayer({
+                    id: 'parcels-highlight',
+                    type: 'line',
+                    source: 'sampson-parcels',
+                    'source-layer': 'combined_layer',
+                    paint: {
+                        'line-color': '#ff1493',
+                        'line-width': 3,
+                        'line-opacity': 1
+                    },
+                    filter: currentFilter || ['==', 'PARNO', ''],
+                    layout: {
+                        visibility: 'visible'
+                    }
+                });
+
+                // Re-add event listeners
+                map.current.on('mouseenter', 'parcels-fill', () => {
+                    map.current.getCanvas().style.cursor = 'pointer';
+                });
+
+                map.current.on('mouseleave', 'parcels-fill', () => {
+                    map.current.getCanvas().style.cursor = '';
+                });
+
+                map.current.on('click', 'parcels-fill', (e) => {
+                    if (e.features && e.features.length > 0) {
+                        const feature = e.features[0];
+                        const parno = feature.properties.PARNO;
+
+                        if (parno && onParcelSelectRef.current) {
+                            map.current.setFilter('parcels-highlight', ['==', 'PARNO', parno]);
+                            onParcelSelectRef.current(parno);
+
+                            // Query soil data at the clicked point
+                            const soilFeatures = map.current.queryRenderedFeatures(e.point, {
+                                layers: ['soil-layer']
+                            });
+
+                            if (soilFeatures.length > 0 && onSoilDataSelectRef.current) {
+                                const soilProps = soilFeatures[0].properties;
+                                onSoilDataSelectRef.current(soilProps);
+                            }
+                        }
+                    }
+                });
+
+                map.current.on('mouseenter', 'soil-layer', () => {
+                    map.current.getCanvas().style.cursor = 'pointer';
+                });
+
+                map.current.on('mouseleave', 'soil-layer', () => {
+                    map.current.getCanvas().style.cursor = '';
+                });
+            });
+        }
+    }, [mapStyle]);
 
     return (
         <div className="map-wrapper">

@@ -8,16 +8,23 @@ function App() {
   const [showSoil, setShowSoil] = useState(true);
   const [showParcels, setShowParcels] = useState(true);
   const [selectedParcelId, setSelectedParcelId] = useState(null);
+  const [soilData, setSoilData] = useState(null);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
+  const [mapStyle, setMapStyle] = useState('dark');
 
   const handleParcelSelect = (parcelId) => {
     setSelectedParcelId(parcelId);
     setShowDetailPanel(true);
   };
 
+  const handleSoilDataSelect = (soilProps) => {
+    setSoilData(soilProps);
+  };
+
   const handleCloseDetail = () => {
     setShowDetailPanel(false);
     setSelectedParcelId(null);
+    setSoilData(null);
   };
 
   return (
@@ -52,34 +59,36 @@ function App() {
               <span className="toggle-status">{showParcels ? 'Visible' : 'Hidden'}</span>
             </div>
           </button>
+
+          <button
+            className={`layer-toggle ${mapStyle === 'satellite' ? 'active' : ''}`}
+            onClick={() => setMapStyle(mapStyle === 'dark' ? 'satellite' : 'dark')}
+          >
+            <div className="toggle-indicator satellite-indicator"></div>
+            <div className="toggle-content">
+              <span className="toggle-label">Satellite View</span>
+              <span className="toggle-status">{mapStyle === 'satellite' ? 'Active' : 'Inactive'}</span>
+            </div>
+          </button>
         </div>
 
-        <div className="legend">
-          <h3 className="legend-title">Legend</h3>
-          <div className="legend-items">
-            <div className="legend-item">
-              <div className="legend-color soil-gradient"></div>
-              <span>Soil Types</span>
-            </div>
-            <div className="legend-item">
-              <div className="legend-color parcels-color"></div>
-              <span>Property Parcels</span>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       <Map
         showSoil={showSoil}
         showParcels={showParcels}
         onParcelSelect={handleParcelSelect}
+        onSoilDataSelect={handleSoilDataSelect}
         selectedParcelId={selectedParcelId}
+        mapStyle={mapStyle}
       />
 
       {/* Parcel Detail Panel */}
       {showDetailPanel && (
         <ParcelDetail
           parcelId={selectedParcelId}
+          soilData={soilData}
           onClose={handleCloseDetail}
         />
       )}
