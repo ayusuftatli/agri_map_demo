@@ -1,6 +1,23 @@
 import pool from '../config/database.js';
 
 /**
+ * Sanitize user input to prevent XSS attacks
+ * Removes potentially dangerous characters from strings
+ * @param {string} str - The input string to sanitize
+ * @returns {string} - The sanitized string
+ */
+const sanitizeInput = (str) => {
+    if (typeof str !== 'string') return str;
+    // Remove < and > to prevent HTML/script injection
+    // eslint-disable-next-line no-control-regex
+    const controlCharsRegex = /[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g;
+    return str
+        .replace(/[<>]/g, '')
+        .replace(controlCharsRegex, '')
+        .trim();
+};
+
+/**
  * Search parcels by parno, address, or owner name
  * GET /api/v1/parcels/search?q=searchTerm&type=parno|address|owner
  */
@@ -15,7 +32,7 @@ export async function searchParcels(req, res) {
             });
         }
 
-        const searchTerm = `%${q.trim()}%`;
+        const searchTerm = `%${sanitizeInput(q)}%`;
 
         let query;
         let params;
@@ -342,21 +359,21 @@ export async function advancedSearchParcels(req, res) {
         // Parcel number filter (ILIKE for partial match)
         if (parno) {
             conditions.push(`p.parno ILIKE $${paramIndex}`);
-            params.push(`%${parno}%`);
+            params.push(`%${sanitizeInput(parno)}%`);
             paramIndex++;
         }
 
         // Address filter (ILIKE for partial match)
         if (address) {
             conditions.push(`p.physical_address ILIKE $${paramIndex}`);
-            params.push(`%${address}%`);
+            params.push(`%${sanitizeInput(address)}%`);
             paramIndex++;
         }
 
         // Owner name filter (ILIKE for partial match)
         if (owner_name) {
             conditions.push(`po.owner_name ILIKE $${paramIndex}`);
-            params.push(`%${owner_name}%`);
+            params.push(`%${sanitizeInput(owner_name)}%`);
             paramIndex++;
             needsOwnerJoin = true;
         }
@@ -364,21 +381,21 @@ export async function advancedSearchParcels(req, res) {
         // Township filter
         if (township) {
             conditions.push(`p.township = $${paramIndex}`);
-            params.push(township);
+            params.push(sanitizeInput(township));
             paramIndex++;
         }
 
         // Zoning code filter
         if (zoning_code) {
             conditions.push(`p.zoning_code = $${paramIndex}`);
-            params.push(zoning_code);
+            params.push(sanitizeInput(zoning_code));
             paramIndex++;
         }
 
         // Classification filter
         if (classification) {
             conditions.push(`pa.classification = $${paramIndex}`);
-            params.push(classification);
+            params.push(sanitizeInput(classification));
             paramIndex++;
         }
 
