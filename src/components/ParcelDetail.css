@@ -185,6 +185,34 @@
     margin-bottom: 0;
 }
 
+/* Toggle Owners Button */
+.toggle-owners-button {
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #f0f7f1;
+    border: 1px solid #d0e4d2;
+    border-radius: 6px;
+    color: #2c5530;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.toggle-owners-button:hover {
+    background: #e3f2e5;
+    border-color: #2c5530;
+}
+
+.toggle-owners-button:active {
+    transform: scale(0.98);
+}
+
 /* Soil Subsection */
 .soil-subsection {
     margin-bottom: 16px;

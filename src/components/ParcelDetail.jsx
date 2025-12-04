@@ -8,16 +8,24 @@ function ParcelDetail({ parcelId, soilData, onClose }) {
     const [owners, setOwners] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [showAllOwners, setShowAllOwners] = useState(false);
 
     // Debug: log soilData when it changes
     useEffect(() => {
-        console.log('[ParcelDetail] soilData received:', soilData);
-        console.log('[ParcelDetail] soilData is array:', Array.isArray(soilData));
-        console.log('[ParcelDetail] soilData length:', soilData?.length);
+        console.log('[ParcelDetail] DIAGNOSTIC: soilData received:', soilData);
+        console.log('[ParcelDetail] DIAGNOSTIC: soilData type:', typeof soilData);
+        console.log('[ParcelDetail] DIAGNOSTIC: soilData is array:', Array.isArray(soilData));
+        console.log('[ParcelDetail] DIAGNOSTIC: soilData has farmland:', soilData?.farmland);
+        console.log('[ParcelDetail] DIAGNOSTIC: soilData has landCapabilityClasses:', soilData?.landCapabilityClasses);
+        if (soilData) {
+            console.log('[ParcelDetail] DIAGNOSTIC: Full soilData object:', JSON.stringify(soilData, null, 2));
+        }
     }, [soilData]);
 
     useEffect(() => {
         if (!parcelId) return;
+
+        console.log('[ParcelDetail] DIAGNOSTIC: parcelId changed to:', parcelId);
 
         const fetchData = async () => {
             setLoading(true);
@@ -163,7 +171,7 @@ function ParcelDetail({ parcelId, soilData, onClose }) {
                         {owners.length > 0 && (
                             <section className="detail-section">
                                 <h3>Owner Information</h3>
-                                {owners.map((owner, index) => (
+                                {(showAllOwners ? owners : owners.slice(0, 1)).map((owner, index) => (
                                     <div key={index} className="owner-card">
                                         <div className="detail-item">
                                             <label>Name</label>
@@ -180,6 +188,17 @@ function ParcelDetail({ parcelId, soilData, onClose }) {
                                         </div>
                                     </div>
                                 ))}
+                                {owners.length > 1 && (
+                                    <button
+                                        className="toggle-owners-button"
+                                        onClick={() => setShowAllOwners(!showAllOwners)}
+                                    >
+                                        {showAllOwners
+                                            ? '▲ Show Less'
+                                            : `▼ Show ${owners.length - 1} More Owner${owners.length - 1 > 1 ? 's' : ''}`
+                                        }
+                                    </button>
+                                )}
                             </section>
                         )}
 

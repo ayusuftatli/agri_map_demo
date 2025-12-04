@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import './Map.css';
+// import { visualizeDebugPoints } from '../utils/mapDebugUtils'; // Uncomment to enable debug visualization
 
 // Mapbox access token
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_PUBLIC_KEY
@@ -86,100 +87,9 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
         return inside;
     };
 
-    // Helper function to visualize debug points on the map
-    const visualizeDebugPoints = (allPoints, insidePoints, bbox) => {
-        if (!map.current) return;
-
-        // Create GeoJSON for all sample points (red)
-        const allPointsGeoJSON = {
-            type: 'FeatureCollection',
-            features: allPoints.map(point => ({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: point },
-                properties: { inside: false }
-            }))
-        };
-
-        // Create GeoJSON for points inside parcel (green)
-        const insidePointsGeoJSON = {
-            type: 'FeatureCollection',
-            features: insidePoints.map(point => ({
-                type: 'Feature',
-                geometry: { type: 'Point', coordinates: point },
-                properties: { inside: true }
-            }))
-        };
-
-        // Create bounding box rectangle
-        const bboxGeoJSON = {
-            type: 'FeatureCollection',
-            features: [{
-                type: 'Feature',
-                geometry: {
-                    type: 'Polygon',
-                    coordinates: [[
-                        [bbox[0][0], bbox[0][1]],
-                        [bbox[1][0], bbox[0][1]],
-                        [bbox[1][0], bbox[1][1]],
-                        [bbox[0][0], bbox[1][1]],
-                        [bbox[0][0], bbox[0][1]]
-                    ]]
-                },
-                properties: {}
-            }]
-        };
-
-        // Remove existing debug layers if they exist
-        if (map.current.getLayer('debug-bbox')) map.current.removeLayer('debug-bbox');
-        if (map.current.getLayer('debug-points-all')) map.current.removeLayer('debug-points-all');
-        if (map.current.getLayer('debug-points-inside')) map.current.removeLayer('debug-points-inside');
-        if (map.current.getSource('debug-bbox')) map.current.removeSource('debug-bbox');
-        if (map.current.getSource('debug-points-all')) map.current.removeSource('debug-points-all');
-        if (map.current.getSource('debug-points-inside')) map.current.removeSource('debug-points-inside');
-
-        // Add bounding box
-        map.current.addSource('debug-bbox', { type: 'geojson', data: bboxGeoJSON });
-        map.current.addLayer({
-            id: 'debug-bbox',
-            type: 'line',
-            source: 'debug-bbox',
-            paint: {
-                'line-color': '#ffff00',
-                'line-width': 2,
-                'line-dasharray': [2, 2]
-            }
-        });
-
-        // Add all sample points (red)
-        map.current.addSource('debug-points-all', { type: 'geojson', data: allPointsGeoJSON });
-        map.current.addLayer({
-            id: 'debug-points-all',
-            type: 'circle',
-            source: 'debug-points-all',
-            paint: {
-                'circle-radius': 4,
-                'circle-color': '#ff0000',
-                'circle-stroke-width': 1,
-                'circle-stroke-color': '#ffffff'
-            }
-        });
-
-        // Add inside points (green) - these will overlay the red ones
-        map.current.addSource('debug-points-inside', { type: 'geojson', data: insidePointsGeoJSON });
-        map.current.addLayer({
-            id: 'debug-points-inside',
-            type: 'circle',
-            source: 'debug-points-inside',
-            paint: {
-                'circle-radius': 5,
-                'circle-color': '#00ff00',
-                'circle-stroke-width': 1,
-                'circle-stroke-color': '#ffffff'
-            }
-        });
-
-        console.log('[Map] Debug visualization added - Yellow: bbox, Red: all points, Green: inside points');
-    };
+    // Debug visualization moved to src/utils/mapDebugUtils.js
+    // To enable: import { visualizeDebugPoints } from '../utils/mapDebugUtils';
+    // Then uncomment the visualizeDebugPoints call below in querySoilFeaturesForParcel
 
     // Helper function to query all soil features within a parcel and deduplicate
     const querySoilFeaturesForParcel = (parcelFeature, clickPoint) => {
@@ -220,7 +130,7 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
 
         // If we have geometry, sample multiple points within the parcel
         if (geometry && geometry.coordinates) {
-            const bbox = getBoundingBox(geometry);
+            // const bbox = getBoundingBox(geometry); // Only needed for debug visualization
             const samplePoints = generateSamplePoints(geometry);
             console.log(`[Map] Generated ${samplePoints.length} sample points`);
 
@@ -228,8 +138,8 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
             const pointsInsideParcel = samplePoints.filter(point => pointInPolygon(point, geometry));
             console.log(`[Map] ${pointsInsideParcel.length} points are inside the parcel`);
 
-            // Visualize debug points
-            visualizeDebugPoints(samplePoints, pointsInsideParcel, bbox);
+            // Debug visualization disabled - to enable, uncomment the import and this line:
+            // visualizeDebugPoints(map.current, samplePoints, pointsInsideParcel, bbox);
 
             // Query soil at each point inside the parcel
             pointsInsideParcel.forEach(point => {
@@ -365,7 +275,7 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
                 'source-layer': 'combined_layer',
                 paint: {
                     'line-color': '#ff00ff',
-                    'line-width': 1.5,
+                    'line-width': 1,
                     'line-opacity': 0.7
                 },
                 layout: {
@@ -506,12 +416,16 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
         if (!map.current || !map.current.isStyleLoaded()) return;
 
         if (selectedParcelId && parcelIndex) {
+            console.log('[Map] selectedParcelId changed via search:', selectedParcelId);
+
             // Highlight the selected parcel using ref to avoid setState in effect
             map.current.setFilter('parcels-highlight', ['==', 'PARNO', selectedParcelId]);
 
             // Fly to the parcel if we have coordinates
             const coordinates = parcelIndex[selectedParcelId];
             if (coordinates) {
+                console.log('[Map] Flying to parcel coordinates:', coordinates);
+
                 // Ensure parcels layer is visible
                 if (map.current.getLayer('parcels-fill')) {
                     map.current.setLayoutProperty('parcels-fill', 'visibility', 'visible');
@@ -523,6 +437,35 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
                     zoom: 17,
                     duration: 1500
                 });
+
+                // Query soil features after the fly animation completes
+                const handleMoveEnd = () => {
+                    console.log('[Map] DIAGNOSTIC: Map moveend - querying parcel feature for soil data...');
+
+                    const point = map.current.project(coordinates);
+                    console.log('[Map] DIAGNOSTIC: Projected point:', point);
+
+                    const features = map.current.queryRenderedFeatures(point, {
+                        layers: ['parcels-fill']
+                    });
+
+                    console.log('[Map] DIAGNOSTIC: Features found at parcel center:', features.length);
+
+                    if (features.length > 0) {
+                        console.log('[Map] DIAGNOSTIC: Feature properties:', features[0].properties);
+                        console.log('[Map] DIAGNOSTIC: Feature has geometry:', !!features[0].geometry);
+                        console.log('[Map] DIAGNOSTIC: Calling querySoilFeaturesForParcel...');
+                        querySoilFeaturesForParcel(features[0], point);
+                    } else {
+                        console.log('[Map] DIAGNOSTIC: No parcel feature found at center point - soil data cannot be queried');
+                    }
+
+                    // Remove the event listener after it fires once
+                    map.current.off('moveend', handleMoveEnd);
+                };
+
+                // Listen for the moveend event which fires when fly animation completes
+                map.current.once('moveend', handleMoveEnd);
             }
         }
     }, [selectedParcelId, parcelIndex]);

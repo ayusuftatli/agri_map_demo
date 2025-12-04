@@ -36,8 +36,6 @@ function App() {
       </div>
 
       <div className="controls-panel">
-        <h2 className="controls-title">Map Layers</h2>
-
         <div className="layer-controls">
           <button
             className={`layer-toggle ${showSoil ? 'active' : ''}`}
@@ -46,7 +44,6 @@ function App() {
             <div className="toggle-indicator soil-indicator"></div>
             <div className="toggle-content">
               <span className="toggle-label">Soil Data</span>
-              <span className="toggle-status">{showSoil ? 'Visible' : 'Hidden'}</span>
             </div>
           </button>
 
@@ -57,7 +54,6 @@ function App() {
             <div className="toggle-indicator parcels-indicator"></div>
             <div className="toggle-content">
               <span className="toggle-label">Parcels</span>
-              <span className="toggle-status">{showParcels ? 'Visible' : 'Hidden'}</span>
             </div>
           </button>
 
@@ -68,7 +64,6 @@ function App() {
             <div className="toggle-indicator satellite-indicator"></div>
             <div className="toggle-content">
               <span className="toggle-label">Satellite View</span>
-              <span className="toggle-status">{mapStyle === 'satellite' ? 'Active' : 'Inactive'}</span>
             </div>
           </button>
         </div>
