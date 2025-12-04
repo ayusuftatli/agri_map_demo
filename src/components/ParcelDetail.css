@@ -185,36 +185,67 @@
     margin-bottom: 0;
 }
 
-/* Soil Type Card */
-.soil-type-card {
-    background: #f0f7f1;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 12px;
-    border-left: 3px solid #2c5530;
+/* Soil Subsection */
+.soil-subsection {
+    margin-bottom: 16px;
 }
 
-.soil-type-card:last-child {
+.soil-subsection:last-child {
     margin-bottom: 0;
 }
 
-.soil-type-header {
-    margin: 0 0 10px 0;
-    font-size: 13px;
+.soil-subsection-title {
+    margin: 0 0 8px 0;
+    font-size: 12px;
     font-weight: 600;
-    color: #2c5530;
+    color: #555;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
-.soil-type-card .detail-grid {
+/* Farmland List */
+.farmland-list {
+    display: flex;
+    flex-direction: column;
     gap: 8px;
 }
 
-.soil-type-card .detail-item label {
-    font-size: 10px;
+.farmland-item {
+    background: #f0f7f1;
+    padding: 10px 12px;
+    border-radius: 6px;
+    border-left: 3px solid #2c5530;
 }
 
-.soil-type-card .detail-item span {
+.farmland-value {
     font-size: 13px;
+    color: #333;
+    line-height: 1.4;
+}
+
+/* Land Capability Classes */
+.land-capability-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.land-capability-badge {
+    display: inline-block;
+    background: #e3f2fd;
+    color: #1565c0;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.land-capability-note {
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+    font-style: italic;
 }
 
 /* Responsive */

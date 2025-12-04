@@ -191,21 +191,32 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
         console.log('[Map] querySoilFeaturesForParcel called');
 
         const geometry = parcelFeature.geometry;
-        const uniqueSoilTypes = {};
+
+        // Collect unique Farmland values and Land Capability Classes
+        const uniqueFarmlandValues = new Set();
+        const uniqueLandCapabilityClasses = new Set();
+
+        // Helper to extract soil data from features
+        const extractSoilData = (features) => {
+            features.forEach(feature => {
+                const props = feature.properties;
+                const farmland = props.Farmland || props.farmland;
+                const landCapClass = props.land_capability_class || props.Land_Capability_Class;
+
+                if (farmland) {
+                    uniqueFarmlandValues.add(farmland);
+                }
+                if (landCapClass) {
+                    uniqueLandCapabilityClasses.add(landCapClass);
+                }
+            });
+        };
 
         // First, always add the soil at the click point
         const clickSoilFeatures = map.current.queryRenderedFeatures(clickPoint, {
             layers: ['soil-layer']
         });
-
-        clickSoilFeatures.forEach(feature => {
-            const props = feature.properties;
-            // Group by Land Capability Class only
-            const landCapClass = props.land_capability_class || 'Unknown';
-            if (!uniqueSoilTypes[landCapClass]) {
-                uniqueSoilTypes[landCapClass] = props;
-            }
-        });
+        extractSoilData(clickSoilFeatures);
 
         // If we have geometry, sample multiple points within the parcel
         if (geometry && geometry.coordinates) {
@@ -221,32 +232,27 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
             visualizeDebugPoints(samplePoints, pointsInsideParcel, bbox);
 
             // Query soil at each point inside the parcel
-            pointsInsideParcel.forEach((point, idx) => {
+            pointsInsideParcel.forEach(point => {
                 const screenPoint = map.current.project(point);
                 const soilFeatures = map.current.queryRenderedFeatures(screenPoint, {
                     layers: ['soil-layer']
                 });
-
-                // Only take the first (topmost) feature at each point
-                if (soilFeatures.length > 0) {
-                    const props = soilFeatures[0].properties;
-                    // Group by Land Capability Class only
-                    const landCapClass = props.land_capability_class || 'Unknown';
-
-                    if (!uniqueSoilTypes[landCapClass]) {
-                        uniqueSoilTypes[landCapClass] = props;
-                        console.log(`[Map] Point ${idx}: Found new class ${landCapClass}`);
-                    }
-                }
+                extractSoilData(soilFeatures);
             });
         }
 
-        const uniqueSoilArray = Object.values(uniqueSoilTypes);
-        console.log(`[Map] Unique soil types found: ${uniqueSoilArray.length}`, uniqueSoilArray);
+        const farmlandArray = Array.from(uniqueFarmlandValues);
+        const landCapClassArray = Array.from(uniqueLandCapabilityClasses).sort();
 
-        // Pass array of soil data to callback
-        if (uniqueSoilArray.length > 0) {
-            onSoilDataSelectRef.current(uniqueSoilArray);
+        console.log(`[Map] Unique Farmland values found: ${farmlandArray.length}`, farmlandArray);
+        console.log(`[Map] Unique Land Capability Classes found: ${landCapClassArray.length}`, landCapClassArray);
+
+        // Pass object with both farmland and land capability class arrays
+        if (farmlandArray.length > 0 || landCapClassArray.length > 0) {
+            onSoilDataSelectRef.current({
+                farmland: farmlandArray,
+                landCapabilityClasses: landCapClassArray
+            });
         }
     };
 
@@ -302,33 +308,27 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
                 paint: {
                     'fill-color': [
                         'match',
-                        ['get', 'land_capability_class'],
-                        // Class I - Best for crops (dark green)
-                        'I', '#2d7f3e',
-                        '1', '#2d7f3e',
-                        // Class II - Good for crops with moderate limitations (medium green)
-                        'II', '#4caf50',
-                        '2', '#4caf50',
-                        // Class III - Suitable for crops with severe limitations (light green)
-                        'III', '#8bc34a',
-                        '3', '#8bc34a',
-                        // Class IV - Marginal for crops (yellow-green)
-                        'IV', '#cddc39',
-                        '4', '#cddc39',
-                        // Class V - Not suitable for crops, pasture/range (light orange)
-                        'V', '#ffc107',
-                        '5', '#ffc107',
-                        // Class VI - Severe limitations, pasture/woodland (orange)
-                        'VI', '#ff9800',
-                        '6', '#ff9800',
-                        // Class VII - Very severe limitations (red-orange)
-                        'VII', '#ff5722',
-                        '7', '#ff5722',
-                        // Class VIII - Recreation/wildlife only (red)
-                        'VIII', '#f44336',
-                        '8', '#f44336',
+                        ['get', 'Farmland'],
+                        // Prime farmland - Best agricultural land (dark green)
+                        'All areas are prime farmland', '#1b5e20',
+                        'Prime farmland', '#2d7f3e',
+                        // Prime farmland with conditions (medium green)
+                        'Prime farmland if drained', '#4caf50',
+                        'Prime farmland if irrigated', '#4caf50',
+                        'Prime farmland if drained and either protected from flooding or not frequently flooded during the growing season', '#4caf50',
+                        'Prime farmland if irrigated and drained', '#4caf50',
+                        'Prime farmland if protected from flooding or not frequently flooded during the growing season', '#4caf50',
+                        'Prime farmland if irrigated and either protected from flooding or not frequently flooded during the growing season', '#4caf50',
+                        // Farmland of statewide importance (light green)
+                        'Farmland of statewide importance', '#8bc34a',
+                        // Farmland of local importance (yellow-green)
+                        'Farmland of local importance', '#cddc39',
+                        // Unique farmland (yellow)
+                        'Farmland of unique importance', '#ffc107',
+                        // Not prime farmland (gray/brown)
+                        'Not prime farmland', '#9e9e9e',
                         // Default color for undefined/null values
-                        '#999999'
+                        '#757575'
                     ],
                     'fill-opacity': 0.6,
                     'fill-outline-color': 'rgba(255,255,255,0.1)'
@@ -560,24 +560,27 @@ const Map = ({ showSoil, showParcels, onParcelSelect, selectedParcelId, mapStyle
                     paint: {
                         'fill-color': [
                             'match',
-                            ['get', 'land_capability_class'],
-                            'I', '#2d7f3e',
-                            '1', '#2d7f3e',
-                            'II', '#4caf50',
-                            '2', '#4caf50',
-                            'III', '#8bc34a',
-                            '3', '#8bc34a',
-                            'IV', '#cddc39',
-                            '4', '#cddc39',
-                            'V', '#ffc107',
-                            '5', '#ffc107',
-                            'VI', '#ff9800',
-                            '6', '#ff9800',
-                            'VII', '#ff5722',
-                            '7', '#ff5722',
-                            'VIII', '#f44336',
-                            '8', '#f44336',
-                            '#999999'
+                            ['get', 'Farmland'],
+                            // Prime farmland - Best agricultural land (dark green)
+                            'All areas are prime farmland', '#1b5e20',
+                            'Prime farmland', '#2d7f3e',
+                            // Prime farmland with conditions (medium green)
+                            'Prime farmland if drained', '#4caf50',
+                            'Prime farmland if irrigated', '#4caf50',
+                            'Prime farmland if drained and either protected from flooding or not frequently flooded during the growing season', '#4caf50',
+                            'Prime farmland if irrigated and drained', '#4caf50',
+                            'Prime farmland if protected from flooding or not frequently flooded during the growing season', '#4caf50',
+                            'Prime farmland if irrigated and either protected from flooding or not frequently flooded during the growing season', '#4caf50',
+                            // Farmland of statewide importance (light green)
+                            'Farmland of statewide importance', '#8bc34a',
+                            // Farmland of local importance (yellow-green)
+                            'Farmland of local importance', '#cddc39',
+                            // Unique farmland (yellow)
+                            'Farmland of unique importance', '#ffc107',
+                            // Not prime farmland (gray/brown)
+                            'Not prime farmland', '#9e9e9e',
+                            // Default color for undefined/null values
+                            '#757575'
                         ],
                         'fill-opacity': 0.6,
                         'fill-outline-color': 'rgba(255,255,255,0.1)'

@@ -184,32 +184,40 @@ function ParcelDetail({ parcelId, soilData, onClose }) {
                         )}
 
                         {/* Soil Information Section */}
-                        {soilData && Array.isArray(soilData) && soilData.length > 0 && (
+                        {soilData && typeof soilData === 'object' && (
                             <section className="detail-section">
-                                <h3>Soil Information ({soilData.length} {soilData.length === 1 ? 'class' : 'classes'} found)</h3>
-                                {soilData.map((soil, index) => (
-                                    <div key={index} className="soil-type-card">
-                                        <h4 className="soil-type-header">Class {soil.land_capability_class || 'Unknown'}</h4>
-                                        <div className="detail-grid">
-                                            <div className="detail-item">
-                                                <label>Farmland</label>
-                                                <span>{soil.Farmland || 'N/A'}</span>
-                                            </div>
-                                            <div className="detail-item">
-                                                <label>Land Capability Class</label>
-                                                <span>{soil.land_capability_class || 'N/A'}</span>
-                                            </div>
-                                            <div className="detail-item">
-                                                <label>Slope</label>
-                                                <span>{soil.Slope || 'N/A'}</span>
-                                            </div>
-                                            <div className="detail-item">
-                                                <label>Soil Type</label>
-                                                <span>{soil['Soil Type'] || 'N/A'}</span>
-                                            </div>
+                                <h3>Soil Information</h3>
+
+                                {/* Farmland Classification */}
+                                {soilData.farmland && soilData.farmland.length > 0 && (
+                                    <div className="soil-subsection">
+                                        <h4 className="soil-subsection-title">Farmland Classification</h4>
+                                        <div className="farmland-list">
+                                            {soilData.farmland.map((farmlandValue, index) => (
+                                                <div key={index} className="farmland-item">
+                                                    <span className="farmland-value">{farmlandValue}</span>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
-                                ))}
+                                )}
+
+                                {/* Land Capability Classes */}
+                                {soilData.landCapabilityClasses && soilData.landCapabilityClasses.length > 0 && (
+                                    <div className="soil-subsection">
+                                        <h4 className="soil-subsection-title">Land Capability Classes</h4>
+                                        <div className="land-capability-list">
+                                            {soilData.landCapabilityClasses.map((classValue, index) => (
+                                                <span key={index} className="land-capability-badge">
+                                                    Class {classValue}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        <p className="land-capability-note">
+                                            This parcel contains {soilData.landCapabilityClasses.length} different land capability {soilData.landCapabilityClasses.length === 1 ? 'class' : 'classes'}.
+                                        </p>
+                                    </div>
+                                )}
                             </section>
                         )}
                     </>
