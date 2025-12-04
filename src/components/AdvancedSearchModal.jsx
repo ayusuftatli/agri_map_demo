@@ -63,6 +63,50 @@ function AdvancedSearchModal({ isOpen, onClose, onParcelSelect }) {
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
+
+        // List of numeric fields that need validation
+        const numericFields = [
+            'deeded_acres_min', 'deeded_acres_max',
+            'calc_acres_min', 'calc_acres_max',
+            'gis_acres_min', 'gis_acres_max',
+            'land_value_min', 'land_value_max',
+            'building_value_min', 'building_value_max',
+            'total_value_min', 'total_value_max',
+            'taxable_value_min', 'taxable_value_max',
+        ];
+
+        // If it's a numeric field, validate the input
+        if (numericFields.includes(name)) {
+            // Allow empty string (for clearing the field)
+            if (value === '') {
+                setFilters(prev => ({
+                    ...prev,
+                    [name]: value,
+                }));
+                return;
+            }
+
+            // Only allow valid numeric input (numbers and single decimal point)
+            // This regex allows: digits, optional decimal point, and digits after decimal
+            const numericRegex = /^\d*\.?\d*$/;
+
+            if (!numericRegex.test(value)) {
+                // Invalid input - don't update the state
+                return;
+            }
+
+            // Additional validation: prevent multiple decimal points
+            const decimalCount = (value.match(/\./g) || []).length;
+            if (decimalCount > 1) {
+                return;
+            }
+
+            // Prevent negative numbers (already handled by min="0" in HTML, but double-check)
+            if (parseFloat(value) < 0) {
+                return;
+            }
+        }
+
         setFilters(prev => ({
             ...prev,
             [name]: value,
@@ -101,9 +145,36 @@ function AdvancedSearchModal({ isOpen, onClose, onParcelSelect }) {
 
         numericFields.forEach(field => {
             if (filters[field] !== '' && filters[field] !== null) {
-                searchFilters[field] = parseFloat(filters[field]);
+                const numValue = parseFloat(filters[field]);
+                // Validate that the parsed value is a valid number
+                if (isNaN(numValue)) {
+                    return; // Skip invalid values
+                }
+                searchFilters[field] = numValue;
             }
         });
+
+        // Validate min/max ranges
+        const rangeValidations = [
+            { min: 'deeded_acres_min', max: 'deeded_acres_max', label: 'Deeded Acres' },
+            { min: 'calc_acres_min', max: 'calc_acres_max', label: 'Calc Acres' },
+            { min: 'gis_acres_min', max: 'gis_acres_max', label: 'GIS Acres' },
+            { min: 'land_value_min', max: 'land_value_max', label: 'Land Value' },
+            { min: 'building_value_min', max: 'building_value_max', label: 'Building Value' },
+            { min: 'total_value_min', max: 'total_value_max', label: 'Total Value' },
+            { min: 'taxable_value_min', max: 'taxable_value_max', label: 'Taxable Value' },
+        ];
+
+        for (const range of rangeValidations) {
+            const minVal = searchFilters[range.min];
+            const maxVal = searchFilters[range.max];
+
+            if (minVal !== undefined && maxVal !== undefined && minVal > maxVal) {
+                setError(`${range.label}: Minimum value cannot be greater than maximum value`);
+                setSearching(false);
+                return;
+            }
+        }
 
         // Check if at least one filter is set
         if (Object.keys(searchFilters).length === 0) {

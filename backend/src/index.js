@@ -7,24 +7,18 @@ import parcelRoutes from './routes/parcels.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// CORS configuration
-const allowedOrigins = process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-    : ['http://localhost:5173'];
+// Log environment for debugging
+console.log('CORS_ORIGIN env:', process.env.CORS_ORIGIN);
+console.log('NODE_ENV:', process.env.NODE_ENV);
 
+// CORS configuration - simplified for production
 const corsOptions = {
-    origin: (origin, callback) => {
-        // Allow requests with no origin (mobile apps, curl, etc.)
-        if (!origin) return callback(null, true);
-
-        if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
-            callback(null, true);
-        } else {
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
-    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    origin: process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(',').map(o => o.trim())
+        : ['http://localhost:5173'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 };
 
 // Rate limiting configuration
