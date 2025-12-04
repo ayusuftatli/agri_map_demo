@@ -48,6 +48,34 @@
     align-items: center;
 }
 
+.advanced-search-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 14px;
+    background: var(--dark-elevated);
+    border: none;
+    border-left: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.advanced-search-btn:hover {
+    background: var(--accent-blue);
+    color: white;
+}
+
+.advanced-search-btn:focus {
+    outline: none;
+    background: var(--accent-blue);
+    color: white;
+}
+
+.advanced-search-btn svg {
+    flex-shrink: 0;
+}
+
 .search-input {
     width: 100%;
     padding: 12px 40px 12px 16px;

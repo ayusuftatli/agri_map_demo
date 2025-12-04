@@ -27,7 +27,6 @@ export async function searchParcels(req, res) {
           FROM parcels p
           WHERE p.parno ILIKE $1
           ORDER BY p.parno
-          LIMIT 50
         `;
                 params = [searchTerm];
                 break;
@@ -38,7 +37,7 @@ export async function searchParcels(req, res) {
           FROM parcels p
           WHERE p.physical_address ILIKE $1
           ORDER BY p.physical_address
-          LIMIT 50
+          
         `;
                 params = [searchTerm];
                 break;
@@ -50,7 +49,7 @@ export async function searchParcels(req, res) {
           JOIN parcel_owners po ON p.parcel_id = po.parcel_id
           WHERE po.owner_name ILIKE $1
           ORDER BY p.parno
-          LIMIT 50
+          
         `;
                 params = [searchTerm];
                 break;
@@ -65,7 +64,7 @@ export async function searchParcels(req, res) {
              OR p.physical_address ILIKE $1
              OR po.owner_name ILIKE $1
           ORDER BY p.parno
-          LIMIT 50
+          
         `;
                 params = [searchTerm];
         }
@@ -240,6 +239,331 @@ export async function getOwners(req, res) {
         return res.status(500).json({
             success: false,
             error: 'Failed to get owners',
+        });
+    }
+}
+
+/**
+ * Get filter options for advanced search dropdowns
+ * GET /api/v1/parcels/filter-options
+ */
+export async function getFilterOptions(req, res) {
+    try {
+        // Get distinct townships
+        const townshipsQuery = `
+            SELECT DISTINCT township
+            FROM parcels
+            WHERE township IS NOT NULL AND township != ''
+            ORDER BY township
+        `;
+        const townshipsResult = await pool.query(townshipsQuery);
+
+        // Get distinct zoning codes
+        const zoningQuery = `
+            SELECT DISTINCT zoning_code
+            FROM parcels
+            WHERE zoning_code IS NOT NULL AND zoning_code != ''
+            ORDER BY zoning_code
+        `;
+        const zoningResult = await pool.query(zoningQuery);
+
+        // Get distinct classifications
+        const classificationQuery = `
+            SELECT DISTINCT classification
+            FROM property_attributes
+            WHERE classification IS NOT NULL AND classification != ''
+            ORDER BY classification
+        `;
+        const classificationResult = await pool.query(classificationQuery);
+
+        // Get distinct tax years
+        const taxYearsQuery = `
+            SELECT DISTINCT tax_year
+            FROM assessments
+            WHERE tax_year IS NOT NULL
+            ORDER BY tax_year DESC
+        `;
+        const taxYearsResult = await pool.query(taxYearsQuery);
+
+        return res.json({
+            success: true,
+            data: {
+                townships: townshipsResult.rows.map(r => r.township),
+                zoning_codes: zoningResult.rows.map(r => r.zoning_code),
+                classifications: classificationResult.rows.map(r => r.classification),
+                tax_years: taxYearsResult.rows.map(r => r.tax_year),
+            },
+        });
+    } catch (error) {
+        console.error('Get filter options error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get filter options',
+        });
+    }
+}
+
+/**
+ * Advanced search parcels with multiple filters
+ * POST /api/v1/parcels/advanced-search
+ */
+export async function advancedSearchParcels(req, res) {
+    try {
+        const {
+            parno,
+            address,
+            owner_name,
+            township,
+            zoning_code,
+            classification,
+            deeded_acres_min,
+            deeded_acres_max,
+            calc_acres_min,
+            calc_acres_max,
+            gis_acres_min,
+            gis_acres_max,
+            land_value_min,
+            land_value_max,
+            building_value_min,
+            building_value_max,
+            total_value_min,
+            total_value_max,
+            taxable_value_min,
+            taxable_value_max,
+            tax_year,
+        } = req.body;
+
+        // Build dynamic query with conditions
+        const conditions = [];
+        const params = [];
+        let paramIndex = 1;
+        let needsOwnerJoin = false;
+
+        // Parcel number filter (ILIKE for partial match)
+        if (parno) {
+            conditions.push(`p.parno ILIKE $${paramIndex}`);
+            params.push(`%${parno}%`);
+            paramIndex++;
+        }
+
+        // Address filter (ILIKE for partial match)
+        if (address) {
+            conditions.push(`p.physical_address ILIKE $${paramIndex}`);
+            params.push(`%${address}%`);
+            paramIndex++;
+        }
+
+        // Owner name filter (ILIKE for partial match)
+        if (owner_name) {
+            conditions.push(`po.owner_name ILIKE $${paramIndex}`);
+            params.push(`%${owner_name}%`);
+            paramIndex++;
+            needsOwnerJoin = true;
+        }
+
+        // Township filter
+        if (township) {
+            conditions.push(`p.township = $${paramIndex}`);
+            params.push(township);
+            paramIndex++;
+        }
+
+        // Zoning code filter
+        if (zoning_code) {
+            conditions.push(`p.zoning_code = $${paramIndex}`);
+            params.push(zoning_code);
+            paramIndex++;
+        }
+
+        // Classification filter
+        if (classification) {
+            conditions.push(`pa.classification = $${paramIndex}`);
+            params.push(classification);
+            paramIndex++;
+        }
+
+        // Deeded acres range
+        if (deeded_acres_min !== null && deeded_acres_min !== undefined) {
+            conditions.push(`pa.deeded_acres >= $${paramIndex}`);
+            params.push(deeded_acres_min);
+            paramIndex++;
+        }
+        if (deeded_acres_max !== null && deeded_acres_max !== undefined) {
+            conditions.push(`pa.deeded_acres <= $${paramIndex}`);
+            params.push(deeded_acres_max);
+            paramIndex++;
+        }
+
+        // Calc acres range
+        if (calc_acres_min !== null && calc_acres_min !== undefined) {
+            conditions.push(`pa.calc_acres >= $${paramIndex}`);
+            params.push(calc_acres_min);
+            paramIndex++;
+        }
+        if (calc_acres_max !== null && calc_acres_max !== undefined) {
+            conditions.push(`pa.calc_acres <= $${paramIndex}`);
+            params.push(calc_acres_max);
+            paramIndex++;
+        }
+
+        // GIS acres range
+        if (gis_acres_min !== null && gis_acres_min !== undefined) {
+            conditions.push(`pa.gis_acres >= $${paramIndex}`);
+            params.push(gis_acres_min);
+            paramIndex++;
+        }
+        if (gis_acres_max !== null && gis_acres_max !== undefined) {
+            conditions.push(`pa.gis_acres <= $${paramIndex}`);
+            params.push(gis_acres_max);
+            paramIndex++;
+        }
+
+        // Tax year filter (for assessment values)
+        let taxYearCondition = '';
+        if (tax_year) {
+            taxYearCondition = `AND a.tax_year = $${paramIndex}`;
+            params.push(tax_year);
+            paramIndex++;
+        }
+
+        // Land value range
+        if (land_value_min !== null && land_value_min !== undefined) {
+            conditions.push(`a.land_value >= $${paramIndex}`);
+            params.push(land_value_min);
+            paramIndex++;
+        }
+        if (land_value_max !== null && land_value_max !== undefined) {
+            conditions.push(`a.land_value <= $${paramIndex}`);
+            params.push(land_value_max);
+            paramIndex++;
+        }
+
+        // Building value range
+        if (building_value_min !== null && building_value_min !== undefined) {
+            conditions.push(`a.building_value >= $${paramIndex}`);
+            params.push(building_value_min);
+            paramIndex++;
+        }
+        if (building_value_max !== null && building_value_max !== undefined) {
+            conditions.push(`a.building_value <= $${paramIndex}`);
+            params.push(building_value_max);
+            paramIndex++;
+        }
+
+        // Total value range
+        if (total_value_min !== null && total_value_min !== undefined) {
+            conditions.push(`a.total_value >= $${paramIndex}`);
+            params.push(total_value_min);
+            paramIndex++;
+        }
+        if (total_value_max !== null && total_value_max !== undefined) {
+            conditions.push(`a.total_value <= $${paramIndex}`);
+            params.push(total_value_max);
+            paramIndex++;
+        }
+
+        // Taxable value range
+        if (taxable_value_min !== null && taxable_value_min !== undefined) {
+            conditions.push(`a.taxable_value >= $${paramIndex}`);
+            params.push(taxable_value_min);
+            paramIndex++;
+        }
+        if (taxable_value_max !== null && taxable_value_max !== undefined) {
+            conditions.push(`a.taxable_value <= $${paramIndex}`);
+            params.push(taxable_value_max);
+            paramIndex++;
+        }
+
+        // Check if any filters were provided
+        if (conditions.length === 0 && !tax_year) {
+            return res.status(400).json({
+                success: false,
+                error: 'At least one filter must be provided',
+            });
+        }
+
+        // Build the WHERE clause
+        const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+
+        // Determine if we need to join assessments table
+        const needsAssessments = land_value_min !== null || land_value_max !== null ||
+            building_value_min !== null || building_value_max !== null ||
+            total_value_min !== null || total_value_max !== null ||
+            taxable_value_min !== null || taxable_value_max !== null ||
+            tax_year;
+
+        // Build owner join clause if needed
+        const ownerJoinClause = needsOwnerJoin
+            ? 'LEFT JOIN parcel_owners po ON p.parcel_id = po.parcel_id'
+            : '';
+
+        let query;
+        if (needsAssessments) {
+            // Use subquery to get latest assessment per parcel (or specific tax year)
+            query = `
+                SELECT DISTINCT
+                    p.parcel_id,
+                    p.pin,
+                    p.parno,
+                    p.physical_address,
+                    p.township,
+                    p.zoning_code,
+                    pa.deeded_acres,
+                    pa.calc_acres,
+                    pa.gis_acres,
+                    pa.classification,
+                    a.tax_year,
+                    a.land_value,
+                    a.building_value,
+                    a.total_value,
+                    a.taxable_value
+                FROM parcels p
+                LEFT JOIN property_attributes pa ON p.parcel_id = pa.parcel_id
+                ${ownerJoinClause}
+                LEFT JOIN LATERAL (
+                    SELECT * FROM assessments
+                    WHERE parcel_id = p.parcel_id ${taxYearCondition}
+                    ORDER BY tax_year DESC
+                    LIMIT 1
+                ) a ON true
+                ${whereClause}
+                ORDER BY p.parno
+                LIMIT 100
+            `;
+        } else {
+            query = `
+                SELECT DISTINCT
+                    p.parcel_id,
+                    p.pin,
+                    p.parno,
+                    p.physical_address,
+                    p.township,
+                    p.zoning_code,
+                    pa.deeded_acres,
+                    pa.calc_acres,
+                    pa.gis_acres,
+                    pa.classification
+                FROM parcels p
+                LEFT JOIN property_attributes pa ON p.parcel_id = pa.parcel_id
+                ${ownerJoinClause}
+                ${whereClause}
+                ORDER BY p.parno
+                LIMIT 100
+            `;
+        }
+
+        const result = await pool.query(query, params);
+
+        return res.json({
+            success: true,
+            count: result.rows.length,
+            data: result.rows,
+        });
+    } catch (error) {
+        console.error('Advanced search parcels error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to perform advanced search',
         });
     }
 }

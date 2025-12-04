@@ -19,3 +19,19 @@ export const getParcelOwners = async (parcelId) => {
     const response = await fetch(`${API_BASE}/parcels/${parcelId}/owners`);
     return response.json();
 };
+
+export const getFilterOptions = async () => {
+    const response = await fetch(`${API_BASE}/parcels/filter-options`);
+    return response.json();
+};
+
+export const advancedSearchParcels = async (filters) => {
+    const response = await fetch(`${API_BASE}/parcels/advanced-search`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(filters),
+    });
+    return response.json();
+};

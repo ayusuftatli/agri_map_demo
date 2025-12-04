@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { searchParcels } from '../services/api';
+import AdvancedSearchModal from './AdvancedSearchModal';
 import './SearchBar.css';
 
 function SearchBar({ onParcelSelect }) {
@@ -8,6 +9,7 @@ function SearchBar({ onParcelSelect }) {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showResults, setShowResults] = useState(false);
+    const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
     const searchRef = useRef(null);
     const debounceRef = useRef(null);
     const isSelectingRef = useRef(false); // Flag to prevent search after selection
@@ -113,52 +115,83 @@ function SearchBar({ onParcelSelect }) {
     };
 
     return (
-        <div className="search-bar" ref={searchRef}>
-            <div className="search-input-group">
-                <select
-                    className="search-type-select"
-                    value={searchType}
-                    onChange={handleTypeChange}
-                >
-                    <option value="parno">Parcel #</option>
-                    <option value="address">Address</option>
-                    <option value="owner">Owner</option>
-                </select>
+        <>
+            <div className="search-bar" ref={searchRef}>
+                <div className="search-input-group">
+                    <select
+                        className="search-type-select"
+                        value={searchType}
+                        onChange={handleTypeChange}
+                    >
+                        <option value="parno">Parcel #</option>
+                        <option value="address">Address</option>
+                        <option value="owner">Owner</option>
+                    </select>
 
-                <div className="search-input-wrapper">
-                    <input
-                        type="text"
-                        className="search-input"
-                        placeholder={`Search by ${searchType === 'parno' ? 'parcel number' : searchType}...`}
-                        value={query}
-                        onChange={handleInputChange}
-                        onFocus={() => results.length > 0 && setShowResults(true)}
-                    />
-                    {loading && <div className="search-spinner"></div>}
+                    <div className="search-input-wrapper">
+                        <input
+                            type="text"
+                            className="search-input"
+                            placeholder={`Search by ${searchType === 'parno' ? 'parcel number' : searchType}...`}
+                            value={query}
+                            onChange={handleInputChange}
+                            onFocus={() => results.length > 0 && setShowResults(true)}
+                        />
+                        {loading && <div className="search-spinner"></div>}
+                    </div>
+
+                    <button
+                        className="advanced-search-btn"
+                        onClick={() => setShowAdvancedSearch(true)}
+                        title="Advanced Search"
+                    >
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            width="18"
+                            height="18"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        >
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <path d="m21 21-4.3-4.3"></path>
+                            <path d="M11 8v6"></path>
+                            <path d="M8 11h6"></path>
+                        </svg>
+                    </button>
                 </div>
+
+                {showResults && results.length > 0 && (
+                    <div className="search-results">
+                        {results.map((result, index) => (
+                            <div
+                                key={`${result.parcel_id}-${index}`}
+                                className="search-result-item"
+                                onClick={() => handleResultClick(result)}
+                            >
+                                <span className="result-label">{getResultLabel(result)}</span>
+                                <span className="result-sublabel">{getResultSubLabel(result)}</span>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {showResults && query.length >= 2 && results.length === 0 && !loading && (
+                    <div className="search-results">
+                        <div className="search-no-results">No parcels found</div>
+                    </div>
+                )}
             </div>
 
-            {showResults && results.length > 0 && (
-                <div className="search-results">
-                    {results.map((result, index) => (
-                        <div
-                            key={`${result.parcel_id}-${index}`}
-                            className="search-result-item"
-                            onClick={() => handleResultClick(result)}
-                        >
-                            <span className="result-label">{getResultLabel(result)}</span>
-                            <span className="result-sublabel">{getResultSubLabel(result)}</span>
-                        </div>
-                    ))}
-                </div>
-            )}
-
-            {showResults && query.length >= 2 && results.length === 0 && !loading && (
-                <div className="search-results">
-                    <div className="search-no-results">No parcels found</div>
-                </div>
-            )}
-        </div>
+            <AdvancedSearchModal
+                isOpen={showAdvancedSearch}
+                onClose={() => setShowAdvancedSearch(false)}
+                onParcelSelect={onParcelSelect}
+            />
+        </>
     );
 }
 
