@@ -2,6 +2,25 @@ import { useState, useEffect } from 'react';
 import { getParcelDetails, getParcelAssessments, getParcelOwners } from '../services/api';
 import './ParcelDetail.css';
 
+// Color mapping for farmland classifications (matching Map.jsx)
+const getFarmlandColor = (farmlandValue) => {
+    const colorMap = {
+        'All areas are prime farmland': '#1b5e20',
+        'Prime farmland': '#2d7f3e',
+        'Prime farmland if drained': '#4caf50',
+        'Prime farmland if irrigated': '#4caf50',
+        'Prime farmland if drained and either protected from flooding or not frequently flooded during the growing season': '#4caf50',
+        'Prime farmland if irrigated and drained': '#4caf50',
+        'Prime farmland if protected from flooding or not frequently flooded during the growing season': '#4caf50',
+        'Prime farmland if irrigated and either protected from flooding or not frequently flooded during the growing season': '#4caf50',
+        'Farmland of statewide importance': '#8bc34a',
+        'Farmland of local importance': '#cddc39',
+        'Farmland of unique importance': '#ffc107',
+        'Not prime farmland': '#9e9e9e'
+    };
+    return colorMap[farmlandValue] || '#757575';
+};
+
 function ParcelDetail({ parcelId, soilData, onClose }) {
     const [parcel, setParcel] = useState(null);
     const [assessments, setAssessments] = useState([]);
@@ -213,7 +232,11 @@ function ParcelDetail({ parcelId, soilData, onClose }) {
                                         <h4 className="soil-subsection-title">Farmland Classification</h4>
                                         <div className="farmland-list">
                                             {soilData.farmland.map((farmlandValue, index) => (
-                                                <div key={index} className="farmland-item">
+                                                <div
+                                                    key={index}
+                                                    className="farmland-item"
+                                                    style={{ borderLeftColor: getFarmlandColor(farmlandValue) }}
+                                                >
                                                     <span className="farmland-value">{farmlandValue}</span>
                                                 </div>
                                             ))}
