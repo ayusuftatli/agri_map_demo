@@ -28,6 +28,7 @@ const corsOptions = {
             return callback(null, true);
         }
 
+        // TODO: REMOVE THIS
         // Check if origin matches (with or without trailing slash)
         const originWithoutSlash = origin.replace(/\/$/, '');
         console.log('Origin without slash:', originWithoutSlash);
@@ -122,6 +123,7 @@ app.use((err, req, res, _next) => {
     });
 });
 
+// TODO: remove excessive checks and logging
 // Start server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

@@ -1,16 +1,78 @@
-# React + Vite
+# Agricultural Parcel Information System
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Full-stack web application for searching, visualizing, and managing property parcel data.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+**Frontend**
+- React 19.2
+- Vite 7.2
+- Mapbox GL 3.16
+- Modern CSS
 
-## React Compiler
+**Backend**
+- Node.js 20+
+- Express.js 4.18
+- PostgreSQL
+- RESTful API
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- Interactive map visualization with Mapbox GL
+- Parcel search by ID, PIN, address, owner
+- Advanced filtering (acreage, value, zoning)
+- Detailed property information display
+- GeoJSON data rendering with 100k+ parcels
+- Rate-limited API endpoints
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+## Database Schema
+
+Normalized PostgreSQL schema with 4 core tables:
+- **Parcels**: Core parcel records with identifiers and legal descriptions
+- **Property_Attributes**: Physical attributes, acreage, zoning
+- **Assessments**: Tax year valuations and assessments
+- **Parcel_Owners**: Ownership records with mailing addresses
+
+See [`database_schema.md`](database_schema.md) for full details.
+
+## Installation
+
+**Frontend**
+```bash
+npm install
+npm run dev
+```
+
+**Backend**
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+## Environment Variables
+
+Backend requires:
+```
+DATABASE_URL=postgresql://user:password@host:port/database
+PORT=3001
+```
+
+## Project Structure
+
+```
+├── src/
+│   ├── components/     # React components (Map, SearchBar, ParcelDetail)
+│   ├── services/       # API client
+│   └── utils/          # Map debugging utilities
+├── backend/
+│   ├── src/
+│   │   ├── controllers/
+│   │   ├── routes/
+│   │   └── config/
+└── public/             # GeoJSON parcel data
+```
+
+## Live Demo
+
+Deployed on Railway with PostgreSQL instance.
